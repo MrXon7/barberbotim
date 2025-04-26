@@ -72,14 +72,25 @@ bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTM
 dp = Dispatcher()
 
 # Klaviaturalar
-def make_web_keyboard(user_id: int):
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(
-            text="Mening Sartaroshim",
-            web_app=WebAppInfo(url=f"https://barber-queue-c0c6f.web.app?telegram_id={user_id}")
-        )],
-        resize_keyboard=True]
-    )
+def make_web_keyboard(user_id: int) -> Optional[ReplyKeyboardMarkup]:
+    """WebApp tugmalari bilan klaviatura yaratish"""
+    try:
+        keyboard = []
+        keyboard.append([
+            KeyboardButton(
+                text="Mening Sartaroshim",
+                web_app=WebAppInfo(url=f"https://barber-queue-c0c6f.web.app?telegram_id={user_id}")
+            )
+        ])
+        return ReplyKeyboardMarkup(
+            keyboard=keyboard,
+            resize_keyboard=True,
+            one_time_keyboard=False,
+            input_field_placeholder="Web sahifani tanlang"
+        )
+    except Exception as e:
+        logger.error(f"Klaviaturani yaratishda xato: {e}")
+#         return None
 
 def make_admin_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
