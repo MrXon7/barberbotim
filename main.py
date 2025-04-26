@@ -28,7 +28,7 @@ import asyncio
 
 # Sozlamalar
 BOT_TOKEN = "7862778153:AAFBXIvMEV3BnMs_kUgyCt7NLB3Z6Z4juo8"
-ADMIN_IDS = list(map(int, os.getenv('ADMIN_IDS', '').split(','))) if os.getenv('ADMIN_IDS') else []
+ADMIN_IDS = [5865675953]
 WEBHOOK_PATH = "/webhook"
 WEB_SERVER_HOST = "0.0.0.0"
 WEB_SERVER_PORT = int(os.getenv('PORT', 8000))
@@ -118,7 +118,7 @@ async def cmd_start(message: Message):
             await message.answer("Admin paneli:", reply_markup=make_admin_keyboard())
         else:
             await message.answer(
-                "Assalomu alaykum!\n✅Navbatga yozilish uchun quyidagi tugmani bosing.",
+                "Assalomu alaykum!\n✅Navbatga yozilish uchun quyidagi tugmani bosing. {message.from_user.id}",
                 reply_markup=make_web_keyboard(message.from_user.id)
             )
     except Exception as e:
@@ -243,33 +243,6 @@ async def unknown_command(message: Message):
         logger.error(f"Xato yuz berdi (unknown_command): {e}")
 
 
-# class BroadcastState(StatesGroup):
-#     waiting_for_message = State()
-
-# @dp.callback_query(F.data == "broadcast")
-# async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
-#     await callback.message.answer(
-#         "📢 Xabarni yuboring:",
-#         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-#             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_broadcast")]
-#         ])
-#     )
-#     await state.set_state(BroadcastState.waiting_for_message)
-#     await callback.answer()
-
-# @dp.message(BroadcastState.waiting_for_message, F.from_user.id.in_(ADMIN_IDS))
-# async def process_broadcast(message: Message, state: FSMContext):
-#     active_users = get_active_users()
-#     success = 0
-#     for user_id in active_users:
-#         try:
-#             await message.send_copy(user_id)
-#             success += 1
-#             await asyncio.sleep(0.1)
-#         except Exception as e:
-#             logger.error(f"Xato (user_id={user_id}): {e}")
-#     await message.answer(f"Xabar {success} foydalanuvchiga yuborildi")
-#     await state.clear()
 
 # ____________________________Webhook sozlamalari
 async def on_startup(app):
