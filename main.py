@@ -284,8 +284,7 @@ async def main():
 # if __name__ == '__main__':
 #     asyncio.run(main())
 app = web.Application()
-app.router.add_get('/', lambda request: web.Response(text="Hello, world!"))
-app.router.add_post('/webhook', bot.webhook_handler)
+app.router.add_post('/webhook', dp.webhook_handler)
 
 async def on_startup(app):
     await bot.set_webhook(f"https://barberbotim-1.onrender.com")
