@@ -15,9 +15,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 from aiohttp import web
+import asyncio
 
 # Sozlamalar
-BOT_TOKEN = os.getenv('BOT_TOKEN')
+BOT_TOKEN = "7862778153:AAFBXIvMEV3BnMs_kUgyCt7NLB3Z6Z4juo8"
 ADMIN_IDS = list(map(int, os.getenv('ADMIN_IDS', '').split(','))) if os.getenv('ADMIN_IDS') else []
 WEBHOOK_PATH = "/webhook"
 WEB_SERVER_HOST = "0.0.0.0"
