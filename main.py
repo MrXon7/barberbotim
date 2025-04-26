@@ -118,7 +118,7 @@ async def cmd_start(message: Message):
             await message.answer("Admin paneli:", reply_markup=make_admin_keyboard())
         else:
             await message.answer(
-                "Assalomu alaykum!\n✅Navbatga yozilish uchun quyidagi tugmani bosing. {message.from_user.id}",
+                "Assalomu alaykum!\n✅Navbatga yozilish uchun quyidagi tugmani bosing.",
                 reply_markup=make_web_keyboard(message.from_user.id)
             )
     except Exception as e:
