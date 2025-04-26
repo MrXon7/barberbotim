@@ -5,8 +5,17 @@ from pathlib import Path
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import (
-    Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo,
-    InlineKeyboardMarkup, InlineKeyboardButton
+    Message,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    WebAppInfo,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    InputFile,
+    InputMediaPhoto,
+    InputMediaVideo,
+    InputMediaAudio,
+    InputMediaDocument
 )
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode, ContentType
@@ -115,35 +124,154 @@ async def cmd_start(message: Message):
     except Exception as e:
         logger.error(f"Xato: {e}")
 
+
+# ================== ADMIN FUNKSIYALARI ==================
+
+# Yangi holatlar klassini yaratamiz
 class BroadcastState(StatesGroup):
     waiting_for_message = State()
 
+async def send_media_to_user(user_id: int, message: Message):
+    """Foydalanuvchiga turli xil media yuborish"""
+    try:
+        if message.content_type == ContentType.TEXT:
+            await bot.send_message(user_id, message.text)
+        elif message.content_type == ContentType.PHOTO:
+            photo = message.photo[-1]  # Eng yuqori sifatli rasm
+            await bot.send_photo(user_id, photo.file_id, caption=message.caption)
+        elif message.content_type == ContentType.VIDEO:
+            await bot.send_video(user_id, message.video.file_id, caption=message.caption)
+        elif message.content_type == ContentType.VIDEO_NOTE:
+            await bot.send_video_note(user_id, message.video_note.file_id)
+        elif message.content_type == ContentType.AUDIO:
+            await bot.send_audio(user_id, message.audio.file_id, caption=message.caption)
+        elif message.content_type == ContentType.DOCUMENT:
+            await bot.send_document(user_id, message.document.file_id, caption=message.caption)
+        else:
+            await bot.send_message(user_id, "Kechirasiz, bu turdagi xabar yuborish imkoni hozircha mavjud emas.")
+    except Exception as e:
+        raise e
+
+# Admin panelida "Xabar yuborish" tugmasi bosilganda
 @dp.callback_query(F.data == "broadcast")
 async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(
-        "📢 Xabarni yuboring:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_broadcast")]
-        ])
-    )
-    await state.set_state(BroadcastState.waiting_for_message)
-    await callback.answer()
+    try:
+        await callback.message.answer(
+            "📢 Barcha foydalanuvchilarga yubormoqchi bo'lgan xabaringizni yuboring:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_broadcast")]
+            ])
+        )
+        await state.set_state(BroadcastState.waiting_for_message)
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Xato yuz berdi (start_broadcast): {e}")
 
+# Admin xabar yuborganida (reply qilish shart emas)
 @dp.message(BroadcastState.waiting_for_message, F.from_user.id.in_(ADMIN_IDS))
-async def process_broadcast(message: Message, state: FSMContext):
-    active_users = get_active_users()
-    success = 0
-    for user_id in active_users:
-        try:
-            await message.send_copy(user_id)
-            success += 1
-            await asyncio.sleep(0.1)
-        except Exception as e:
-            logger.error(f"Xato (user_id={user_id}): {e}")
-    await message.answer(f"Xabar {success} foydalanuvchiga yuborildi")
-    await state.clear()
+async def process_broadcast_all_types(message: Message, state: FSMContext):
+    try:
+        await message.answer("Xabar foydalanuvchilarga yuborilmoqda...")
+        
+        stats = {"success": 0, "blocked": 0, "failed": 0}
+        active_users = get_active_users()
+        total_users = len(active_users)
+        processed = 0
+        
+        for user_id in active_users:
+            try:
+                await send_media_to_user(user_id, message)
+                stats["success"] += 1
+            except Exception as e:
+                if "bot was blocked by the user" in str(e):
+                    stats["blocked"] += 1
+                else:
+                    stats["failed"] += 1
+                logger.error(f"Xabar yuborishda xato (user_id: {user_id}): {e}")
+            
+            processed += 1
+            if processed % 10 == 0:  # Har 10ta xabardan keyin progress yangilash
+                await message.edit_text(
+                    f"Xabar yuborilmoqda...\n"
+                    f"Progress: {processed}/{total_users}\n"
+                    f"✅ {stats['success']} ❌ {stats['blocked']} ⚠️ {stats['failed']}"
+                )
+            await asyncio.sleep(0.1)  # Limitlardan qochish uchun
+        
+        await message.answer(
+            f"📊 Xabar yuborish yakunlandi:\n"
+            f"Jami foydalanuvchilar: {total_users}\n"
+            f"✅ Muvaffaqiyatli: {stats['success']}\n"
+            f"❌ Bloklangan: {stats['blocked']}\n"
+            f"⚠️ Boshqa xatolar: {stats['failed']}"
+        )
+        await state.clear()
+        
+    except Exception as e:
+        logger.error(f"Xabar yuborishda asosiy xato: {e}")
+        await message.answer(f"Xatolik yuz berdi: {str(e)}")
+        await state.clear()
 
-# Webhook sozlamalari
+# Bekor qilish tugmasi
+@dp.callback_query(F.data == "cancel_broadcast")
+async def cancel_broadcast(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        await callback.message.answer("Xabar yuborish bekor qilindi.")
+        await state.clear()
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Xato yuz berdi (cancel_broadcast): {e}")
+
+
+# ================== BOSHQALAR ==================
+
+@dp.message()
+async def unknown_command(message: Message):
+    try:
+        if message.from_user.id in ADMIN_IDS:
+            await message.answer("Noto'g'ri buyruq! Admin paneli uchun /start ni bosing.")
+        else:
+            keyboard = make_web_keyboard(message.from_user.id)
+            if keyboard:
+                await message.answer(
+                    "Noto'g'ri buyruq! Iltimos, menyudan biror tugmani tanlang yoki /start ni bosing.",
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer("Noto'g'ri buyruq! Iltimos, /start ni bosing.")
+    except Exception as e:
+        logger.error(f"Xato yuz berdi (unknown_command): {e}")
+
+
+# class BroadcastState(StatesGroup):
+#     waiting_for_message = State()
+
+# @dp.callback_query(F.data == "broadcast")
+# async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
+#     await callback.message.answer(
+#         "📢 Xabarni yuboring:",
+#         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+#             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_broadcast")]
+#         ])
+#     )
+#     await state.set_state(BroadcastState.waiting_for_message)
+#     await callback.answer()
+
+# @dp.message(BroadcastState.waiting_for_message, F.from_user.id.in_(ADMIN_IDS))
+# async def process_broadcast(message: Message, state: FSMContext):
+#     active_users = get_active_users()
+#     success = 0
+#     for user_id in active_users:
+#         try:
+#             await message.send_copy(user_id)
+#             success += 1
+#             await asyncio.sleep(0.1)
+#         except Exception as e:
+#             logger.error(f"Xato (user_id={user_id}): {e}")
+#     await message.answer(f"Xabar {success} foydalanuvchiga yuborildi")
+#     await state.clear()
+
+# ____________________________Webhook sozlamalari
 async def on_startup(app):
     await bot.set_webhook(WEBHOOK_URL)
     logger.info(f"Webhook o'rnatildi: {WEBHOOK_URL}")
