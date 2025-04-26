@@ -280,7 +280,20 @@ async def main():
     finally:
         await bot.session.close()
 
+# if __name__ == '__main__':
+#     asyncio.run(main())
+@app.get("/health")
+async def health_check():
+    return web.Response(text="OK")
+
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Polling rejimi uchun
+    while True:
+        try:
+            logger.info("Bot ishga tushirilmoqda...")
+            asyncio.run(dp.start_polling(bot))
+        except Exception as e:
+            logger.error(f"Botni ishga tushirishda asosiy xato: {e}")
+            await asyncio.sleep(5)
 
 
