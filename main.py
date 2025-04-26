@@ -24,6 +24,7 @@ from typing import List, Dict, Optional
 from aiogram.enums import ContentType
 import os
 
+from aiohttp import web
 
 import sqlite3
 from pathlib import Path
@@ -282,16 +283,17 @@ async def main():
 
 # if __name__ == '__main__':
 #     asyncio.run(main())
+app = web.Application()
+
 @app.get("/health")
-async def health_check():
+async def health_check(request):
     return web.Response(text="OK")
 
+async def on_startup(app):
+    await bot.set_webhook(f"https://barberbotim-1.onrender.com")
+
 if __name__ == '__main__':
-    # Polling rejimi uchun
-    while True:
-        try:
-            asyncio.run(main())
-        except Exception as e:
-            time.sleep(5)
+    import asyncio
+    web.run_app(app, host="0.0.0.0", port=8000)
 
 
