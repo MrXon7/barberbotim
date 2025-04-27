@@ -1,6 +1,5 @@
 import os
 import logging
-import sqlite3
 from pathlib import Path
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -42,41 +41,121 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Ma'lumotlar bazasi
-DB_PATH = Path("/data/users.db")
+import psycopg2
+from psycopg2 import sql
+# from aiogram import types
+# import os
+from typing import Set
+
+# PostgreSQL ulanish uchun
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
+    """Ma'lumotlar bazasi va jadvalni yaratish"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
+            user_id BIGINT PRIMARY KEY,
             username TEXT,
             first_name TEXT,
             last_name TEXT,
-            is_blocked INTEGER DEFAULT 0,
-            last_active TEXT DEFAULT CURRENT_TIMESTAMP
+            is_blocked BOOLEAN DEFAULT FALSE,
+            last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )
         """)
+        
+        conn.commit()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
 
 def add_user(user: types.User):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(
-            """INSERT OR IGNORE INTO users 
-            (user_id, username, first_name, last_name) 
-            VALUES (?, ?, ?, ?)""",
-            (user.id, user.username, user.first_name, user.last_name)
-        )
-        conn.execute(
-            """UPDATE users SET 
-            username = ?, first_name = ?, last_name = ?,
+    """Foydalanuvchi qo'shish yoki yangilash"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        # INSERT yoki UPDATE qilish (UPSERT)
+        cur.execute("""
+        INSERT INTO users (user_id, username, first_name, last_name)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (user_id) 
+        DO UPDATE SET 
+            username = EXCLUDED.username,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
             last_active = CURRENT_TIMESTAMP
-            WHERE user_id = ?""",
-            (user.username, user.first_name, user.last_name, user.id)
-        )
+        """, (user.id, user.username, user.first_name, user.last_name))
+        
+        conn.commit()
+    except Exception as e:
+        print(f"Error adding/updating user: {e}")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
 
-def get_active_users():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.execute("SELECT user_id FROM users WHERE is_blocked = 0")
-        return {row[0] for row in cursor.fetchall()}
+def get_active_users() -> Set[int]:
+    """Bloklanmagan faol foydalanuvchilarni olish"""
+    active_users = set()
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        cur.execute("SELECT user_id FROM users WHERE is_blocked = FALSE")
+        active_users = {row[0] for row in cur.fetchall()}
+        
+    except Exception as e:
+        print(f"Error fetching active users: {e}")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+    
+    return active_users
+
+
+# DB_PATH = Path("/data/users.db")
+
+# def init_db():
+#     with sqlite3.connect(DB_PATH) as conn:
+#         conn.execute("""
+#         CREATE TABLE IF NOT EXISTS users (
+#             user_id INTEGER PRIMARY KEY,
+#             username TEXT,
+#             first_name TEXT,
+#             last_name TEXT,
+#             is_blocked INTEGER DEFAULT 0,
+#             last_active TEXT DEFAULT CURRENT_TIMESTAMP
+#         )
+#         """)
+
+# def add_user(user: types.User):
+#     with sqlite3.connect(DB_PATH) as conn:
+#         conn.execute(
+#             """INSERT OR IGNORE INTO users 
+#             (user_id, username, first_name, last_name) 
+#             VALUES (?, ?, ?, ?)""",
+#             (user.id, user.username, user.first_name, user.last_name)
+#         )
+#         conn.execute(
+#             """UPDATE users SET 
+#             username = ?, first_name = ?, last_name = ?,
+#             last_active = CURRENT_TIMESTAMP
+#             WHERE user_id = ?""",                
+#             (user.username, user.first_name, user.last_name, user.id)
+#         )
+
+# def get_active_users():
+#     with sqlite3.connect(DB_PATH) as conn:
+#         cursor = conn.execute("SELECT user_id FROM users WHERE is_blocked = 0")
+#         return {row[0] for row in cursor.fetchall()}
 
 # Bot va dispatcher
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
