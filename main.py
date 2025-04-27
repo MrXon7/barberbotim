@@ -42,7 +42,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Ma'lumotlar bazasi
-DB_PATH = Path("users.db")
+DB_PATH = Path("/data/users.db")
 
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
