@@ -26,8 +26,8 @@ from aiohttp import web
 import asyncio
 
 # Sozlamalar
-BOT_TOKEN = "7862778153:AAFBXIvMEV3BnMs_kUgyCt7NLB3Z6Z4juo8"
-ADMIN_IDS = [5865675953]
+BOT_TOKEN = os.getenv('BOT_TOKEN')  # Fetch the bot token from environment variables
+ADMIN_IDS = os.getenv('ADMIN_IDS').split(',')  # Replace with actual admin IDs
 WEBHOOK_PATH = "/webhook"
 WEB_SERVER_HOST = "0.0.0.0"
 WEB_SERVER_PORT = int(os.getenv('PORT', 8000))
