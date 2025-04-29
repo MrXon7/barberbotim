@@ -27,7 +27,8 @@ import asyncio
 
 # Sozlamalar
 BOT_TOKEN = os.getenv('BOT_TOKEN')  # Fetch the bot token from environment variables
-ADMIN_IDS = list(map(int, os.getenv('ADMIN_IDS').split(',')))  # Replace with actual admin IDs
+# ADMIN_IDS = list(map(int, os.getenv('ADMIN_IDS').split(',')))  # Replace with actual admin IDs
+ADMIN_IDS = [5865675953]  # Replace with actual admin IDs for testing
 WEBHOOK_PATH = "/webhook"
 WEB_SERVER_HOST = "0.0.0.0"
 WEB_SERVER_PORT = int(os.getenv('PORT', 8000))
