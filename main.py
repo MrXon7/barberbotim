@@ -10,11 +10,11 @@ from aiogram.types import (
     WebAppInfo,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
-    InputFile,
-    InputMediaPhoto,
-    InputMediaVideo,
-    InputMediaAudio,
-    InputMediaDocument
+    # InputFile,
+    # InputMediaPhoto,
+    # InputMediaVideo,
+    # InputMediaAudio,
+    # InputMediaDocument
 )
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode, ContentType
@@ -24,6 +24,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 from aiohttp import web
 import asyncio
+import requests
+import threading
 
 # Sozlamalar
 BOT_TOKEN = os.getenv('BOT_TOKEN')  # Fetch the bot token from environment variables
@@ -295,6 +297,19 @@ app = web.Application()
 app.on_startup.append(on_startup)
 SimpleRequestHandler(dp, bot=bot).register(app, path=WEBHOOK_PATH)
 app.router.add_get("/health", health_check)
+
+
+# ___________________________Uxlab qolishni oldini olish
+
+def keep_alive():
+    try:
+        requests.get("https://barberbotim-1.onrender.com/health")
+    except:
+        pass
+    threading.Timer(300, keep_alive).start()  # Har 5 daqiqada
+
+# Ishga tushganda
+keep_alive()
 
 # Render Uchun Run
 if __name__ == "__main__":
