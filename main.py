@@ -296,8 +296,14 @@ app.on_startup.append(on_startup)
 SimpleRequestHandler(dp, bot=bot).register(app, path=WEBHOOK_PATH)
 app.router.add_get("/health", health_check)
 
-if __name__ == "__main__":
-    init_db()
-    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+# Render Uchun Run
+# if __name__ == "__main__":
+#     init_db()
+#     web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+
+# Koyep uchun Run
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8000))
+    web.run_app(app, host="0.0.0.0", port=port)
 
 
