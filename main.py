@@ -127,10 +127,10 @@ def make_web_keyboard(user_id: int) -> Optional[ReplyKeyboardMarkup]:
     """WebApp tugmalari bilan klaviatura yaratish"""
     try:
         keyboard=[]
-        keyboard.append(KeyboardButton(
+        keyboard.append([KeyboardButton(
                 text="Mening Sartaroshim",
                 web_app=WebAppInfo(url=f"https://barber-queue-c0c6f.web.app?telegram_id={user_id}")
-            ))
+            )])
       
         return ReplyKeyboardMarkup(
             keyboard=keyboard,
