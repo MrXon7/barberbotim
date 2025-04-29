@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 # Ma'lumotlar bazasi
 import psycopg2
+from psycopg2 import sql
 from typing import Set
 
 # PostgreSQL ulanish uchun
